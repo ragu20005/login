@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="product-research-container">
+    <div class="research-header">
+        <h2>Product Research Dashboard</h2>
+        <div class="actions">
+            <button onclick="showAddProductModal()" class="btn-primary">
+                Track New Product
+            </button>
+        </div>
+    </div>
+
+    <div class="research-grid">
+        <!-- Price Tracking Section -->
+        <div class="tracking-section">
+            <h3>Tracked Products</h3>
+            <div id="tracked-products-list"></div>
+        </div>
+
+        <!-- Price History Chart -->
+        <div class="chart-section">
+            <h3>Price History</h3>
+            <canvas id="priceHistoryChart"></canvas>
+        </div>
+
+        <!-- Competitor Analysis -->
+        <div class="competitor-section">
+            <h3>Competitor Analysis</h3>
+            <div id="competitor-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Product Modal -->
+<div id="addProductModal" class="modal">
+    <div class="modal-content">
+        <h3>Track New Product</h3>
+        <form id="addProductForm" onsubmit="handleAddProduct(event)">
+            <div class="form-group">
+                <label>Product Name</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>Product URL</label>
+                <input type="url" name="url" required>
+            </div>
+            <div class="form-group">
+                <label>Target Price</label>
+                <input type="number" name="target_price" step="0.01" required>
+            </div>
+            <button type="submit" class="btn-primary">Add Product</button>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let priceHistoryChart = null;
+
+async function loadTrackedProducts() {
+    const response = await fetch('/api/tracked-products');
+    const data = await response.json();
+    
+    const productsList = document.getElementById('tracked-products-list');
+    productsList.innerHTML = data.products.map(product => `
+        <div class="product-card">
+            <h4>${product.name}</h4>
+            <p>Current Price: $${product.current_price}</p>
+            <p>Target Price: $${product.target_price}</p>
+            <div class="card-actions">
+                <button onclick="viewPriceHistory(${product.id})">
+                    View History
+                </button>
+                <button onclick="viewCompetitors(${product.id})">
+                    View Competitors
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function viewPriceHistory(productId) {
+    const response = await fetch(`/api/price-history/${productId}`);
+    const data = await response.json();
+    
+    const ctx = document.getElementById('priceHistoryChart').getContext('2d');
+    
+    if (priceHistoryChart) {
+        priceHistoryChart.destroy();
+    }
+    
+    priceHistoryChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.history.map(h => h.date),
+            datasets: [{
+                label: 'Price History',
+                data: data.history.map(h => h.price),
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: false
+                }
+            }
+        }
+    });
+}
+
+async function viewCompetitors(productId) {
+    const response = await fetch(`/api/competitor-analysis/${productId}`);
+    const data = await response.json();
+    
+    const competitorList = document.getElementById('competitor-list');
+    competitorList.innerHTML = data.competitors.map(competitor => `
+        <div class="competitor-card">
+            <h4>${competitor.store}</h4>
+            <p>Price: $${competitor.price}</p>
+            <p>Last Updated: ${competitor.last_updated}</p>
+            <p>Status: ${competitor.availability ? 'In Stock' : 'Out of Stock'}</p>
+            <a href="${competitor.url}" target="_blank" class="btn-view">
+                View Product
+            </a>
+        </div>
+    `).join('');
+}
+
+async function handleAddProduct(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    try {
+        const response = await fetch('/api/track-product', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(Object.fromEntries(formData))
+        });
+        
+        if (response.ok) {
+            closeModal();
+            loadTrackedProducts();
+            showNotification('Product added successfully');
+        } else {
+            showNotification('Failed to add product', 'error');
+        }
+    } catch (error) {
+        showNotification('An error occurred', 'error');
+    }
+}
+
+// Initial load
+document.addEventListener('DOMContentLoaded', () => {
+    loadTrackedProducts();
+});
+</script>
+{% endblock %}

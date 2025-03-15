@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="ecommerce-container">
+    <h2>E-commerce Analysis</h2>
+    
+    <!-- Product Tracking Section -->
+    <section class="tracking-section">
+        <h3>Product Tracking</h3>
+        <form id="productTrackingForm" class="tracking-form">
+            <div class="form-group">
+                <label for="productUrl">Product URL:</label>
+                <input type="url" id="productUrl" name="productUrl" required>
+            </div>
+            <div class="form-group">
+                <label for="productName">Product Name:</label>
+                <input type="text" id="productName" name="productName" required>
+            </div>
+            <div class="form-group">
+                <label for="targetPrice">Target Price:</label>
+                <input type="number" id="targetPrice" name="targetPrice" step="0.01" required>
+            </div>
+            <button type="submit">Track Product</button>
+        </form>
+    </section>
+
+    <!-- Tracked Products List -->
+    <section class="tracked-products">
+        <h3>Tracked Products</h3>
+        <div id="trackedProductsList" class="products-list">
+            <!-- Products will be loaded here dynamically -->
+        </div>
+    </section>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadTrackedProducts();
+    
+    document.getElementById('productTrackingForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        addProductToTrack();
+    });
+});
+
+async function loadTrackedProducts() {
+    try {
+        const response = await fetch('/api/ecommerce/tracked-products');
+        const data = await response.json();
+        
+        const productsList = document.getElementById('trackedProductsList');
+        if (data.products && data.products.length > 0) {
+            productsList.innerHTML = data.products.map(product => `
+                <div class="product-card">
+                    <h4>${product.name}</h4>
+                    <p>Current Price: $${product.current_price}</p>
+                    <p>Price Change: ${product.price_change}%</p>
+                    <a href="${product.url}" target="_blank">View Product</a>
+                </div>
+            `).join('');
+        } else {
+            productsList.innerHTML = '<p>No products being tracked yet.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading tracked products:', error);
+    }
+}
+
+async function addProductToTrack() {
+    const formData = {
+        url: document.getElementById('productUrl').value,
+        name: document.getElementById('productName').value,
+        target_price: document.getElementById('targetPrice').value
+    };
+
+    try {
+        const response = await fetch('/api/track-product', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+            loadTrackedProducts();
+            document.getElementById('productTrackingForm').reset();
+        } else {
+            const data = await response.json();
+            alert(data.error || 'Failed to add product');
+        }
+    } catch (error) {
+        console.error('Error adding product:', error);
+        alert('Failed to add product');
+    }
+}
+</script>
+{% endblock %}

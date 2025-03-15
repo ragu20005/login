@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='serp_styles.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="serp-container">
+    <h2>SERP Search</h2>
+    
+    <div class="search-form">
+        <form id="serpSearchForm" onsubmit="performSearch(event)">
+            <div class="serp-form-group">
+                <label for="searchType">Search Type:</label>
+                <select id="searchType" name="searchType" required>
+                    <option value="product_search">Product Search</option>
+                    <option value="news_search">News Search</option>
+                    <option value="local_business">Local Business</option>
+                </select>
+            </div>
+
+            <div class="serp-form-group">
+                <label for="searchQuery">Search Query:</label>
+                <input type="text" id="searchQuery" name="searchQuery" 
+                       placeholder="e.g., iPhone 14 Pro, Nike Air Max" required>
+            </div>
+
+            <div class="serp-form-group" id="locationField">
+                <label for="location">Location:</label>
+                <input type="text" id="location" name="location" 
+                       placeholder="e.g., United States, United Kingdom">
+                <small>Required for accurate pricing and availability</small>
+            </div>
+
+            <button type="submit" class="btn-primary">Search Products</button>
+        </form>
+    </div>
+
+    <div id="results" class="results-container"></div>
+</div>
+
+<script>
+async function performSearch(event) {
+    event.preventDefault();
+    
+    const searchType = document.getElementById('searchType').value;
+    const searchQuery = document.getElementById('searchQuery').value;
+    const location = document.getElementById('location').value;
+    const resultsDiv = document.getElementById('results');
+    
+    resultsDiv.innerHTML = '<div class="loader"></div>';
+    
+    try {
+        const response = await fetch('/api/serp_search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                searchType,
+                searchQuery,
+                location
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayResults(data, searchType);
+        } else {
+            resultsDiv.innerHTML = `<div class="error">${data.error}</div>`;
+        }
+    } catch (error) {
+        resultsDiv.innerHTML = '<div class="error">Search failed. Please try again.</div>';
+    }
+}
+
+function displayResults(data, searchType) {
+    const resultsDiv = document.getElementById('results');
+    
+    if (searchType === 'product_search') {
+        let html = `
+            <div class="search-summary">
+                <p>Found ${data.search_metadata?.total_results || 'multiple'} products</p>
+            </div>
+            <div class="results-grid">
+        `;
+        
+        if (data.shopping_results?.length > 0) {
+            data.shopping_results.forEach(item => {
+                html += `
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="${item.thumbnail}" alt="${item.title}">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-title">${item.title}</h3>
+                            <div class="product-price-info">
+                                <span class="price">${item.price}</span>
+                                <span class="shipping">${item.shipping || ''}</span>
+                            </div>
+                            <div class="store-info">
+                                <span class="store-name">${item.store_name}</span>
+                                ${item.rating ? `
+                                    <div class="rating">
+                                        <span class="stars">★</span>
+                                        ${item.rating} (${item.reviews} reviews)
+                                    </div>
+                                ` : ''}
+                            </div>
+                            ${item.specifications ? `
+                                <div class="specifications">
+                                    ${Object.entries(item.specifications).map(([key, value]) => 
+                                        `<span class="spec-item">${key}: ${value}</span>`
+                                    ).join('')}
+                                </div>
+                            ` : ''}
+                            <div class="product-actions">
+                                <a href="${item.link}" target="_blank" class="btn-view">View Product</a>
+                                <button onclick="trackPrice('${item.link}', '${item.price}')" 
+                                        class="btn-track">Track Price</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            html += '<div class="no-results">No products found. Try adjusting your search.</div>';
+        }
+        
+        html += '</div>';
+        resultsDiv.innerHTML = html;
+    }
+}
+
+// Show/hide location field based on search type
+document.getElementById('searchType').addEventListener('change', function(e) {
+    const locationField = document.getElementById('locationField');
+    locationField.style.display = 
+        (e.target.value === 'news_search') ? 'none' : 'block';
+});
+</script>
+{% endblock %}

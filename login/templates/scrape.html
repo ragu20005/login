@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Scrape Website</h2>
+<form method="post" id="scrape-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+        <label for="url">Enter Website URL:</label>
+        <input type="url" id="url" name="url" required>
+    </div>
+    <button type="submit">Start Scraping</button>
+</form>
+<div id="loader" class="loader" style="display: none;"></div>
+
+<script>
+document.getElementById('scrape-form').addEventListener('submit', function() {
+    document.getElementById('loader').style.display = 'block';
+});
+</script>
+{% endblock %}

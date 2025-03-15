@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="dashboard-container">
+    <!-- Welcome Section -->
+    <header class="dashboard-header">
+        <h2>Welcome, {{ username }}!</h2>
+    </header>
+
+    <!-- Main Features Grid -->
+    <div class="features-grid">
+        <!-- E-commerce Analysis -->
+        <div class="feature-card" onclick="location.href='{{ url_for('ecommerce_analysis') }}'">
+            <div class="feature-icon">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <h3>E-commerce Analysis</h3>
+            <p>Track products, monitor prices, analyze competitors, and gather market insights</p>
+            <ul class="feature-list">
+                <li>Product tracking & price monitoring</li>
+                <li>Competitor analysis</li>
+                <li>Market trends</li>
+                <li>Sales analytics</li>
+            </ul>
+        </div>
+
+        <!-- News Monitoring -->
+        <!--
+        <div class="feature-card" onclick="location.href='{{ url_for('news_monitoring') }}'">
+            <div class="feature-icon">
+                <i class="fas fa-newspaper"></i>
+            </div>
+            <h3>News Monitoring</h3>
+            <p>Track industry news, brand mentions, and market trends</p>
+            <ul class="feature-list">
+                <li>Industry news tracking</li>
+                <li>Brand mentions</li>
+                <li>Sentiment analysis</li>
+                <li>News alerts</li>
+            </ul>
+        </div>
+        -->
+
+        <!-- Local Business Data -->
+        <div class="feature-card" onclick="location.href='{{ url_for('local_business') }}'">
+            <div class="feature-icon">
+                <i class="fas fa-store"></i>
+            </div>
+            <h3>Local Business Data</h3>
+            <p>Gather business information, reviews, and location data</p>
+            <ul class="feature-list">
+                <li>Business information</li>
+                <li>Reviews tracking</li>
+                <li>Location analytics</li>
+                <li>Competitor mapping</li>
+            </ul>
+        </div>
+
+        <!-- Data Extraction -->
+        <div class="feature-card" onclick="location.href='{{ url_for('data_extraction') }}'">
+            <div class="feature-icon">
+                <i class="fas fa-database"></i>
+            </div>
+            <h3>Data Extraction</h3>
+            <p>Configure and manage web scraping operations</p>
+            <ul class="feature-list">
+                <li>Custom scraping templates</li>
+                <li>Scheduled extractions</li>
+                <li>Data export tools</li>
+                <li>Extraction history</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <section class="recent-activities">
+        <h3>Recent Activities</h3>
+        <div id="activityContent" class="activity-content"></div>
+    </section>
+</div>
+{% endblock %}

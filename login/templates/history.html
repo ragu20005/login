@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block content %}
+<main class="container">
+    <h2>Scraping History</h2>
+    <div class="filter-section">
+        <form method="get" action="{{ url_for('history') }}" class="sort-form">
+            <select id="sort" name="sort" onchange="this.form.submit()">
+                <option value="date" {% if current_sort == 'date' %}selected{% endif %}>Sort by Date</option>
+                <option value="url" {% if current_sort == 'url' %}selected{% endif %}>Sort by URL</option>
+            </select>
+            <select id="order" name="order" onchange="this.form.submit()">
+                <option value="desc" {% if current_order == 'desc' %}selected{% endif %}>Newest First</option>
+                <option value="asc" {% if current_order == 'asc' %}selected{% endif %}>Oldest First</option>
+            </select>
+        </form>
+    </div>
+
+    {% if history %}
+        <div class="history-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>URL</th>
+                        <th>Preview</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in history %}
+                        <tr>
+                            <td>{{ entry.date }}</td>
+                            <td>{{ entry.url[:50] }}{% if entry.url|length > 50 %}...{% endif %}</td>
+                            <td>
+                                <button onclick="showPreview('{{ entry.id }}')" class="btn-preview">
+                                    Preview
+                                </button>
+                            </td>
+                            <td>
+                                <button onclick="exportData('{{ entry.id }}', 'json')" class="btn-export">JSON</button>
+                                <button onclick="exportData('{{ entry.id }}', 'csv')" class="btn-export">CSV</button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="no-data">No scraping history found.</p>
+    {% endif %}
+</main>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Scraped Data Preview</h3>
+        <div class="preview-tabs">
+            <button class="tab-btn active" onclick="switchTab('json')">JSON</button>
+            <button class="tab-btn" onclick="switchTab('csv')">CSV</button>
+        </div>
+        <div id="previewContent"></div>
+        <div class="modal-actions">
+            <button onclick="downloadData('json')" class="btn-download">Download JSON</button>
+            <button onclick="downloadData('csv')" class="btn-download">Download CSV</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentData = null;
+let currentId = null;
+
+async function showPreview(id) {
+    currentId = id;
+    const modal = document.getElementById('previewModal');
+    const response = await fetch(`/api/preview/${id}`);
+    const data = await response.json();
+    currentData = data;
+    
+    displayPreviewData('json');
+    modal.style.display = "block";
+}
+
+function displayPreviewData(format) {
+    const content = document.getElementById('previewContent');
+    if (format === 'json') {
+        content.innerHTML = `<pre>${JSON.stringify(currentData, null, 2)}</pre>`;
+    } else {
+        content.innerHTML = convertToCSVPreview(currentData);
+    }
+}
+
+function switchTab(format) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    displayPreviewData(format);
+}
+
+async function exportData(id, format) {
+    window.location.href = `/export/${id}/${format}`;
+}
+
+async function downloadData(format) {
+    if (currentId) {
+        await exportData(currentId, format);
+    }
+}
+
+document.querySelector('.close').onclick = function() {
+    document.getElementById('previewModal').style.display = "none";
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('previewModal');
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
+function convertToCSVPreview(data) {
+    if (!Array.isArray(data)) {
+        data = [data];
+    }
+    const headers = Object.keys(data[0]);
+    const rows = data.map(obj => headers.map(header => obj[header]));
+    return `<table class="csv-preview">
+        <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+        ${rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}
+    </table>`;
+}
+</script>
+{% endblock %}
